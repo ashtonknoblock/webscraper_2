@@ -2,6 +2,7 @@ import sys
 import re
 import argparse
 import requests
+import urllib2
 import HTMLParser
 from pprint import pprint
 from bs4 import BeautifulSoup
@@ -11,19 +12,36 @@ def scrape(url):
     numbers = []
     r = requests.get(url)
     html = r.text
+    links = []
+    imgs = []
+    page = urllib2.urlopen(url).read()
+    soup = BeautifulSoup(page, features="html.parser")
+    soup.prettify()
+    for anchor in soup.findAll('a', href=True):
+         links.append(anchor['href'])
+    href_links = [str(r) for r in links]
+    for image in soup.findAll('img', src=True):
+        imgs.append(image['src']) 
+
     no_script = re.sub(r"<[^>]*>", " ", html)
-    emails = re.findall(r"([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)", no_script)
     phone_numbers = re.findall(r"1?\W*([2-9][0-8][0-9])\W*([2-9][0-9]{2})\W*([0-9]{4})(\se?x?t?(\d*))?", no_script)
-    links = re.findall( r"http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+", no_script)
+    emails = re.findall(r"([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)", no_script)
     for tup in phone_numbers:
-        joined = "-".join(tup[:3])
-        numbers.append(joined)
-    
-    print "emails found:\n", "\n".join(emails)
-    print 
-    print "phone numbers found:\n", "\n".join(numbers)
+         joined = "-".join(tup[:3])
+         numbers.append(joined)
+
+    print "---- phone numbers found: \n", "\n".join(list(set(numbers)))
     print
-    print "links found:\n", "\n".join(links)
+    print "----emails found:\n", "\n".join(list(set(emails)))
+    print
+    print "----links found: \n {}".format("\n".join(list(set(href_links))))
+    print
+    print "----images found: \n {}".format("\n".join(list(set(imgs))))
+  
+    
+
+
+
 
 
 def create_parser():
